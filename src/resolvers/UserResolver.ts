@@ -1,8 +1,12 @@
 import { hash } from "argon2";
-import { GraphqlContext } from "src/types";
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from "type-graphql";
 import { User, UserRoles } from "../entity/User";
-import { FieldErrors, LoginInput, UserResponse } from "../types";
+import {
+	FieldErrors,
+	GraphqlContext,
+	LoginInput,
+	UserResponse,
+} from "../types";
 
 @Resolver(User)
 export class UserResolver {
@@ -34,6 +38,13 @@ export class UserResolver {
 		@Arg("options") { password, username }: LoginInput,
 		@Ctx() { req }: GraphqlContext
 	): Promise<UserResponse> {
+		if (req.session.userId) {
+			throw new Error(
+				"You already have a session, to login use logout first"
+			);
+		}
+
+		// if user NOT in session
 		const user = await User.findOne({ where: { username } });
 		if (!user) {
 			return new UserResponse().setErrors([
@@ -70,6 +81,14 @@ export class UserResolver {
 		@Ctx() { req }: GraphqlContext
 	): Promise<UserResponse> {
 		const errors: FieldErrors[] = [];
+
+		if (req.session.userId) {
+			throw new Error(
+				"You already have a session, to register use logout first"
+			);
+		}
+
+		// if NOT in session
 
 		// Validation
 		//

@@ -8,11 +8,24 @@ import { buildSchema } from "type-graphql";
 import { v4 } from "uuid";
 import { AppDataSource } from "./data-source";
 import { User } from "./entity/User";
+import { SearchResolver } from "./resolvers/SearchResolver";
 import { UserResolver } from "./resolvers/UserResolver";
 import { GraphqlContext } from "./types";
 
 (async () => {
-	await AppDataSource.initialize();
+	let reconnect = 1;
+	while (true) {
+		try {
+			const db = await AppDataSource.initialize();
+			console.log("connected", db.isConnected);
+			break;
+		} catch (error) {
+			console.log(error);
+			console.log(`[retries=${reconnect}]reconnecting to database...`);
+			await new Promise((resolve) => setTimeout(resolve, 1000 * 3));
+			reconnect++;
+		}
+	}
 
 	const app = express();
 	app.use(
@@ -31,7 +44,7 @@ import { GraphqlContext } from "./types";
 
 	const apolloServer = new ApolloServer({
 		schema: await buildSchema({
-			resolvers: [UserResolver],
+			resolvers: [UserResolver, SearchResolver],
 			authChecker: async ({ context }, roles) => {
 				const { req } = context as GraphqlContext;
 
@@ -66,6 +79,7 @@ import { GraphqlContext } from "./types";
 			}),
 		],
 		context: ({ req, res }) => ({ req, res }),
+		formatError: (error) => ({ message: error.message }),
 	});
 
 	await apolloServer.start();
