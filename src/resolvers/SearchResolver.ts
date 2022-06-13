@@ -6,11 +6,18 @@ export class SearchResolver {
 	@Query(() => [User])
 	async search(@Arg("keyword") keyword: string): Promise<User[]> {
 		// search by keyword
-		console.log(keyword);
-		return await User.find({
+		const users = await User.find({
 			where: {
 				role: "Normal",
 			},
 		});
+
+		const filtered = users.filter(({ password, id, ...rest }) =>
+			Object.values(rest).some((field: string) =>
+				field.toLowerCase().includes(keyword.toLowerCase())
+			)
+		);
+
+		return filtered;
 	}
 }
