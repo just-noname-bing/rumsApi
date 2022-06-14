@@ -95,7 +95,7 @@ import { GraphqlContext } from "./types";
 
 	await apolloServer.start();
 
-	apolloServer.applyMiddleware({ app });
+	apolloServer.applyMiddleware({ app, cors: false });
 
 	app.listen(parseInt(process.env.SERVER_PORT!), () => {
 		console.log(
