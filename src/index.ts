@@ -1,5 +1,6 @@
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
+import cors from "cors";
 import "dotenv-safe/config";
 import express from "express";
 import session from "express-session";
@@ -28,6 +29,15 @@ import { GraphqlContext } from "./types";
 	}
 
 	const app = express();
+
+	app.set("trust proxy", 1);
+	app.use(
+		cors({
+			origin: process.env.WEB_SERVER_ORIGIN,
+			credentials: true,
+		})
+	);
+
 	app.use(
 		session({
 			name: "jaiz",
@@ -80,6 +90,7 @@ import { GraphqlContext } from "./types";
 		],
 		context: ({ req, res }) => ({ req, res }),
 		formatError: (error) => ({ message: error.message }),
+		csrfPrevention: true,
 	});
 
 	await apolloServer.start();
