@@ -1,6 +1,7 @@
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import cors from "cors";
+import { stringify } from "csv-stringify/sync";
 import "dotenv-safe/config";
 import express from "express";
 import session from "express-session";
@@ -12,7 +13,7 @@ import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { v4 } from "uuid";
 import { AppDataSource } from "./data-source";
-import { User } from "./entity/User";
+import { User, UserRoles } from "./entity/User";
 import { FileResolver } from "./resolvers/FileResolver";
 import { SearchResolver } from "./resolvers/SearchResolver";
 import { UserResolver } from "./resolvers/UserResolver";
@@ -104,23 +105,30 @@ import { GraphqlContext } from "./types";
 
 	apolloServer.applyMiddleware({ app, cors: false });
 
-	// app.get("/export/users", async (_, res) => {
-	// 	const users = await User.createQueryBuilder()
-	// 		.select([
-	// 			"User.id",
-	// 			"User.username",
-	// 			"User.firstName",
-	// 			"User.lastName",
-	// 		])
-	// 		.where("role=:role", {
-	// 			role: UserRoles.Normal,
-	// 		})
-	// 		.getMany();
+	app.get("/export/users", async (_, res) => {
+		const users = await User.createQueryBuilder()
+			.select([
+				"User.id",
+				"User.username",
+				"User.firstName",
+				"User.lastName",
+			])
+			.where("role=:role", {
+				role: UserRoles.Normal,
+			})
+			.getMany();
 
-	// 	res.setHeader("Content-disposition", "attachment; filename=users.csv");
-	// 	res.set("Content-Type", "text/csv");
-	// 	res.status(200).send(stringify(users));
-	// });
+		res.setHeader("Content-disposition", "attachment; filename=users.csv");
+		res.set("Content-Type", "text/csv");
+
+		try {
+			const data = stringify(users, { header: true });
+			return res.status(200).send(data);
+		} catch (error) {
+			console.log(error);
+			return res.status(404).send("something went wrong");
+		}
+	});
 
 	app.listen(parseInt(process.env.SERVER_PORT!), () => {
 		console.log(
