@@ -21,16 +21,20 @@ export class FileResolver {
 							columns: true,
 						});
 						const users = await castToUsersArray(usersToCreate);
-						await User.save(users, { chunk: 10 });
+						// await User.save(users, { chunk: 10 });
+						await User.createQueryBuilder()
+							.insert()
+							.values(users)
+							.orIgnore()
+							.execute();
+						return resolve(true);
 					} catch (error) {
-						console.log(error);
-						if (error.code === "23505") {
-							return reject(new Error("User already exists"));
-						}
+						// if (error.code === "23505") {
+						// 	// this event fires not every time [fix*]
+						// 	return reject(new Error("User already exists"));
+						// }
 						return reject(new Error(error.message));
 					}
-					// verify users and then add them to db
-					resolve(true);
 				})
 				.on("error", () => reject(false));
 		});
