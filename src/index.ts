@@ -8,12 +8,11 @@ import session from "express-session";
 // @ts-ignore
 import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.js"; //bro
 
-import json2csv from "json2csv";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { v4 } from "uuid";
 import { AppDataSource } from "./data-source";
-import { User, UserRoles } from "./entity/User";
+import { User } from "./entity/User";
 import { FileResolver } from "./resolvers/FileResolver";
 import { SearchResolver } from "./resolvers/SearchResolver";
 import { UserResolver } from "./resolvers/UserResolver";
@@ -105,23 +104,23 @@ import { GraphqlContext } from "./types";
 
 	apolloServer.applyMiddleware({ app, cors: false });
 
-	app.get("/export/users", async (_, res) => {
-		const users = await User.createQueryBuilder()
-			.select([
-				"User.id",
-				"User.username",
-				"User.firstName",
-				"User.lastName",
-			])
-			.where("role=:role", {
-				role: UserRoles.Normal,
-			})
-			.getMany();
+	// app.get("/export/users", async (_, res) => {
+	// 	const users = await User.createQueryBuilder()
+	// 		.select([
+	// 			"User.id",
+	// 			"User.username",
+	// 			"User.firstName",
+	// 			"User.lastName",
+	// 		])
+	// 		.where("role=:role", {
+	// 			role: UserRoles.Normal,
+	// 		})
+	// 		.getMany();
 
-		res.setHeader("Content-disposition", "attachment; filename=users.csv");
-		res.set("Content-Type", "text/csv");
-		res.status(200).send(json2csv.parse(users));
-	});
+	// 	res.setHeader("Content-disposition", "attachment; filename=users.csv");
+	// 	res.set("Content-Type", "text/csv");
+	// 	res.status(200).send(stringify(users));
+	// });
 
 	app.listen(parseInt(process.env.SERVER_PORT!), () => {
 		console.log(

@@ -1,3 +1,5 @@
+import { parse } from "csv-parse";
+
 // @ts-ignore
 import GraphQLUpload from "graphql-upload/GraphQLUpload.js"; // :(
 
@@ -13,8 +15,9 @@ export class FileResolver {
 	): Promise<boolean> {
 		return await new Promise((resolve, reject) => {
 			createReadStream()
-				.on("data", (row) => {
+				.on("data", (row: Buffer) => {
 					console.log(row);
+					console.log(parse(row));
 					resolve(true);
 				})
 				.on("error", () => reject(false));

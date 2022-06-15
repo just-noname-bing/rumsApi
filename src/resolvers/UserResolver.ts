@@ -1,6 +1,12 @@
+import { hash } from "argon2";
 import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from "type-graphql";
 import { User, UserRoles } from "../entity/User";
-import { GraphqlContext, LoginInput, UserResponse } from "../types";
+import {
+	FieldErrors,
+	GraphqlContext,
+	LoginInput,
+	UserResponse,
+} from "../types";
 
 @Resolver(User)
 export class UserResolver {
@@ -69,68 +75,68 @@ export class UserResolver {
 		return new UserResponse().setData(user);
 	}
 
-	// @Mutation(() => UserResponse)
-	// async register(
-	// 	@Arg("options") { password, username }: LoginInput,
-	// 	@Ctx() { req }: GraphqlContext
-	// ): Promise<UserResponse> {
-	// 	const errors: FieldErrors[] = [];
+	@Mutation(() => UserResponse)
+	async register(
+		@Arg("options") { password, username }: LoginInput,
+		@Ctx() { req }: GraphqlContext
+	): Promise<UserResponse> {
+		const errors: FieldErrors[] = [];
 
-	// 	if (req.session.userId) {
-	// 		throw new Error(
-	// 			"You already have a session, to register use logout first"
-	// 		);
-	// 	}
+		if (req.session.userId) {
+			throw new Error(
+				"You already have a session, to register use logout first"
+			);
+		}
 
-	// 	// if NOT in session
+		// if NOT in session
 
-	// 	// Validation
-	// 	//
-	// 	if (username.length < 3) {
-	// 		errors.push({
-	// 			field: "username",
-	// 			message: "Username is too small",
-	// 		});
-	// 	}
+		// Validation
+		//
+		if (username.length < 3) {
+			errors.push({
+				field: "username",
+				message: "Username is too small",
+			});
+		}
 
-	// 	if (password.length < 4) {
-	// 		errors.push({
-	// 			field: "password",
-	// 			message: "Password is too small",
-	// 		});
-	// 	}
+		if (password.length < 4) {
+			errors.push({
+				field: "password",
+				message: "Password is too small",
+			});
+		}
 
-	// 	if (errors.length) {
-	// 		return new UserResponse().setErrors(errors);
-	// 	}
+		if (errors.length) {
+			return new UserResponse().setErrors(errors);
+		}
 
-	// 	let user;
-	// 	try {
-	// 		user = await User.create({
-	// 			username,
-	// 			password: await hash(password),
-	// 			firstName: "bob",
-	// 			lastName: "bo",
-	// 		}).save();
-	// 	} catch (error) {
-	// 		if (error.code == "23505") {
-	// 			// already exists
-	// 			return new UserResponse().setErrors([
-	// 				{
-	// 					field: "username",
-	// 					message: "Already exists",
-	// 				},
-	// 			]);
-	// 		}
-	// 		throw new Error("Something went wrong");
-	// 	}
+		let user;
+		try {
+			user = await User.create({
+				username,
+				password: await hash(password),
+				firstName: "bob",
+				lastName: "bo",
+			}).save();
+		} catch (error) {
+			if (error.code == "23505") {
+				// already exists
+				return new UserResponse().setErrors([
+					{
+						field: "username",
+						message: "Already exists",
+					},
+				]);
+			}
+			throw new Error("Something went wrong");
+		}
 
-	// 	// Success register
-	// 	// Save session
-	// 	req.session.userId = user.id;
+		// Success register
+		// Save session
+		req.session.userId = user.id;
 
-	// 	return new UserResponse().setData(user);
-	// }
+		return new UserResponse().setData(user);
+	}
 
 	@Mutation(() => Boolean)
 	async logout(@Ctx() { req }: GraphqlContext): Promise<boolean> {
