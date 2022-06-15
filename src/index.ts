@@ -4,11 +4,17 @@ import cors from "cors";
 import "dotenv-safe/config";
 import express from "express";
 import session from "express-session";
+
+// @ts-ignore
+import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.js"; //bro
+
+import json2csv from "json2csv";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { v4 } from "uuid";
 import { AppDataSource } from "./data-source";
-import { User } from "./entity/User";
+import { User, UserRoles } from "./entity/User";
+import { FileResolver } from "./resolvers/FileResolver";
 import { SearchResolver } from "./resolvers/SearchResolver";
 import { UserResolver } from "./resolvers/UserResolver";
 import { GraphqlContext } from "./types";
@@ -52,9 +58,11 @@ import { GraphqlContext } from "./types";
 		})
 	);
 
+	app.use(graphqlUploadExpress());
+
 	const apolloServer = new ApolloServer({
 		schema: await buildSchema({
-			resolvers: [UserResolver, SearchResolver],
+			resolvers: [UserResolver, SearchResolver, FileResolver],
 			authChecker: async ({ context }, roles) => {
 				const { req } = context as GraphqlContext;
 
@@ -90,12 +98,30 @@ import { GraphqlContext } from "./types";
 		],
 		context: ({ req, res }) => ({ req, res }),
 		formatError: (error) => ({ message: error.message }),
-		csrfPrevention: true,
+		// csrfPrevention: true,
 	});
 
 	await apolloServer.start();
 
 	apolloServer.applyMiddleware({ app, cors: false });
+
+	app.get("/export/users", async (_, res) => {
+		const users = await User.createQueryBuilder()
+			.select([
+				"User.id",
+				"User.username",
+				"User.firstName",
+				"User.lastName",
+			])
+			.where("role=:role", {
+				role: UserRoles.Normal,
+			})
+			.getMany();
+
+		res.setHeader("Content-disposition", "attachment; filename=users.csv");
+		res.set("Content-Type", "text/csv");
+		res.status(200).send(json2csv.parse(users));
+	});
 
 	app.listen(parseInt(process.env.SERVER_PORT!), () => {
 		console.log(

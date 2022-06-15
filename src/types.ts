@@ -1,4 +1,7 @@
 import { Request, Response } from "express";
+import { Stream } from "stream";
+import { Field, InputType, ObjectType } from "type-graphql";
+import { User } from "./entity/User";
 
 export type GraphqlContext = {
 	req: Request;
@@ -24,9 +27,6 @@ declare global {
 		}
 	}
 }
-
-import { Field, InputType, ObjectType } from "type-graphql";
-import { User } from "./entity/User";
 
 @InputType()
 export class LoginInput {
@@ -59,4 +59,11 @@ export class UserResponse {
 		this.errors = errors;
 		return this;
 	}
+}
+
+export interface Upload {
+	filename: string;
+	mimetype: string;
+	encoding: string;
+	createReadStream: () => Stream;
 }
