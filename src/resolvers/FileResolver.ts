@@ -2,13 +2,14 @@ import { parse } from "csv-parse/sync";
 // @ts-ignore
 import GraphQLUpload from "graphql-upload/GraphQLUpload.js"; // :(
 
-import { Arg, Mutation, Resolver } from "type-graphql";
-import { User } from "../entity/User";
+import { Arg, Authorized, Mutation, Resolver } from "type-graphql";
+import { User, UserRoles } from "../entity/User";
 import { Upload } from "../types";
 import { castToUsersArray } from "../utils/verifyCsvFields";
 
 @Resolver(User)
 export class FileResolver {
+	@Authorized<keyof typeof UserRoles>(["Admin", "Moderator"])
 	@Mutation(() => Boolean)
 	async registerUsers(
 		@Arg("file", () => GraphQLUpload) { createReadStream }: Upload
