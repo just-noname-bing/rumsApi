@@ -40,10 +40,10 @@ import { GraphqlContext } from "./types";
 			if (!admin) {
 				admin = await User.create({
 					username: process.env.INITIAL_ADMIN_USERNAME,
-					firstName: "admin",
-					lastName: "admin",
+					firstName: UserRoles.Admin,
+					lastName: UserRoles.Admin,
 					password: await hash(process.env.INITIAL_ADMIN_PASSWORD),
-					role: "Admin",
+					role: UserRoles.Admin,
 				}).save();
 			}
 
