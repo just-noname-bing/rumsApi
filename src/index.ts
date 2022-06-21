@@ -1,5 +1,6 @@
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
+import { hash } from "argon2";
 import cors from "cors";
 import { stringify } from "csv-stringify/sync";
 import "dotenv-safe/config";
@@ -15,8 +16,9 @@ import { v4 } from "uuid";
 import { AppDataSource } from "./data-source";
 import { User, UserRoles } from "./entity/User";
 import { FileResolver } from "./resolvers/FileResolver";
+import { LoginResolver } from "./resolvers/LoginResolver";
 import { SearchResolver } from "./resolvers/SearchResolver";
-import { UserResolver } from "./resolvers/UserResolver";
+import { UpdateUserResolver } from "./resolvers/UserResolver";
 import { GraphqlContext } from "./types";
 
 (async () => {
@@ -24,7 +26,23 @@ import { GraphqlContext } from "./types";
 	while (true) {
 		try {
 			const db = await AppDataSource.initialize();
-			console.log("connected", db.isConnected);
+			console.log("connected", db.isInitialized);
+
+			let admin = await User.findOne({ where: { role: "Admin" } });
+			if (!admin) {
+				// no admin
+				admin = await User.create({
+					username: process.env.INITIAL_ADMIN_USERNAME,
+					firstName: "admin",
+					lastName: "admin",
+					password: await hash(process.env.POSTGRES_PASSWORD),
+				}).save();
+			}
+
+			console.log(
+				`Initial admin creds: \n${process.env.INITIAL_ADMIN_USERNAME}\n${process.env.INITIAL_ADMIN_PASSWORD}`
+			);
+
 			break;
 		} catch (error) {
 			console.log(error);
@@ -62,7 +80,12 @@ import { GraphqlContext } from "./types";
 
 	const apolloServer = new ApolloServer({
 		schema: await buildSchema({
-			resolvers: [UserResolver, SearchResolver, FileResolver],
+			resolvers: [
+				LoginResolver,
+				SearchResolver,
+				FileResolver,
+				UpdateUserResolver,
+			],
 			authChecker: async ({ context }, roles) => {
 				const { req } = context as GraphqlContext;
 

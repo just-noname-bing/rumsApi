@@ -1,52 +1,40 @@
 import { hash } from "argon2";
+import { ValidationError } from "yup";
 import { User } from "../entity/User";
+import { FieldErrors } from "../types";
+import { createUserValidationSchema } from "../validation";
 
 export async function castToUsersArray(usersToCreate: User[]) {
+	const errors: FieldErrors[] = [];
 	const users: User[] = await Promise.all(
 		usersToCreate.map(async (user, idx) => {
 			// idx++ not includes headers;
 			idx += 2;
 			const u = new User();
 
-			if (!user.username) {
-				throw new Error(
-					`cannot find required field [username] row[${idx}]`
-				);
-			} else if (user.username.length < 3) {
-				throw new Error(`row[${idx}] [username] is too small`);
-			}
+			try {
+				await createUserValidationSchema.validate(user, {
+					abortEarly: false,
+				});
+				u.username = user.username;
+				u.firstName = user.firstName;
+				u.lastName = user.lastName;
+				u.password = await hash(user.password);
+				u.role = user.role;
 
-			if (!user.firstName) {
-				throw new Error(
-					`cannot find required field [firstName] row[${idx}]`
-				);
-			} else if (user.firstName.length < 3) {
-				throw new Error(`[row[${idx}] firstName] is too small`);
-			}
+				return u;
+			} catch (error) {
+				(error as ValidationError).inner.forEach((e) => {
+					errors.push({
+						field: `[row: ${idx}] ` + e.path!,
+						message: e.message,
+					});
+				});
 
-			if (!user.lastName) {
-				throw new Error(
-					`cannot find required field [lastName] row[${idx}]`
-				);
-			} else if (user.lastName.length < 3) {
-				throw new Error(`row[${idx}] [lastName] is too small`);
+				return user;
 			}
-
-			if (!user.password) {
-				throw new Error(
-					`cannot find required field [password] row[${idx}]`
-				);
-			} else if (user.password.length < 3) {
-				throw new Error(`row[${idx}] [password] is too small`);
-			}
-
-			u.username = user.username;
-			u.firstName = user.firstName;
-			u.lastName = user.lastName;
-			u.password = await hash(user.password);
-			return u;
 		})
 	);
 
-	return users;
+	return { errors, users };
 }

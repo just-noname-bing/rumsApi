@@ -1,149 +1,117 @@
 import { hash } from "argon2";
-import { Arg, Authorized, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Authorized, Mutation, Resolver } from "type-graphql";
+import { ValidationError } from "yup";
 import { User, UserRoles } from "../entity/User";
+import { FieldErrors, RegisterInput, UserFields, UserResponse } from "../types";
 import {
-	FieldErrors,
-	GraphqlContext,
-	LoginInput,
-	UserResponse,
-} from "../types";
+	createUserValidationSchema,
+	updateUserValidationSchema,
+} from "../validation";
 
-@Resolver(User)
-export class UserResolver {
-	@Query(() => User)
-	async me(@Ctx() { req }: GraphqlContext): Promise<User> {
-		if (!req.session.userId) {
-			throw new Error("Not Authenticated");
-		}
+@Resolver()
+export class UpdateUserResolver {
+	@Authorized<keyof typeof UserRoles>(["Admin"])
+	@Mutation(() => [User])
+	async deleteUsers(
+		@Arg("ids", () => [String]) ids: string[]
+	): Promise<User[]> {
+		// return deleted users
 
-		const user = await User.findOne({ where: { id: req.session.userId } });
+		// const deletedUsers = await User.delete(ids);
+		// console.log(deletedUsers);
+		// return deletedUsers.raw;
 
-		if (!user) {
-			throw new Error("Not Authenticated");
-		}
-
-		// Is authenticated
-
-		return user;
+		const deletedUsers = await User.createQueryBuilder()
+			.delete()
+			.where("id in (:...ids)", { ids })
+			.returning("*")
+			.execute();
+		console.log(deletedUsers);
+		return deletedUsers.raw;
 	}
 
-	@Authorized<keyof typeof UserRoles>("Admin", "Moderator")
-	@Query(() => [User])
-	async users(): Promise<User[]> {
-		return await User.find();
-	}
-
+	@Authorized<keyof typeof UserRoles>(["Admin"])
 	@Mutation(() => UserResponse)
-	async login(
-		@Arg("options") { password, username }: LoginInput,
-		@Ctx() { req }: GraphqlContext
-	): Promise<UserResponse> {
-		if (req.session.userId) {
-			throw new Error(
-				"You already have a session, to login use logout first"
-			);
-		}
-
-		// if user NOT in session
-		const user = await User.findOne({ where: { username } });
-		if (!user) {
-			return new UserResponse().setErrors([
-				{
-					field: "username",
-					message: "Username doesn't exist",
-				},
-			]);
-		}
-
-		if (!(await user.verify(password))) {
-			return new UserResponse().setErrors([
-				{
-					field: "username",
-					message: "Incorrect credentials",
-				},
-				{
-					field: "username",
-					message: "Incorrect credentials",
-				},
-			]);
-		}
-
-		// Success login
-		// Save session
-		req.session.userId = user.id;
-
-		return new UserResponse().setData(user);
-	}
-
-	@Mutation(() => UserResponse)
-	async register(
-		@Arg("options") { password, username }: LoginInput,
-		@Ctx() { req }: GraphqlContext
+	async updateUser(
+		@Arg("id") id: string,
+		@Arg("newValues") user: UserFields
 	): Promise<UserResponse> {
 		const errors: FieldErrors[] = [];
 
-		if (req.session.userId) {
-			throw new Error(
-				"You already have a session, to register use logout first"
-			);
-		}
-
-		// if NOT in session
-
-		// Validation
-		//
-		if (username.length < 3) {
-			errors.push({
-				field: "username",
-				message: "Username is too small",
-			});
-		}
-
-		if (password.length < 4) {
-			errors.push({
-				field: "password",
-				message: "Password is too small",
-			});
-		}
-
-		if (errors.length) {
-			return new UserResponse().setErrors(errors);
-		}
-
-		let user;
 		try {
-			user = await User.create({
-				username,
-				password: await hash(password),
-				firstName: "bob",
-				lastName: "bo",
-			}).save();
+			await updateUserValidationSchema.validate(user, {
+				abortEarly: false,
+			});
+
+			const updatedUser = await User.createQueryBuilder()
+				.update({
+					...user,
+				})
+				.where("id=:id", { id })
+				.returning("*")
+				.execute();
+
+			return new UserResponse().setData(updatedUser.raw[0]);
 		} catch (error) {
-			if (error.code == "23505") {
-				// already exists
+			if (error.code === "23505") {
 				return new UserResponse().setErrors([
 					{
 						field: "username",
-						message: "Already exists",
+						message: "That username already in use",
 					},
 				]);
 			}
-			throw new Error("Something went wrong");
+
+			(error as ValidationError).inner.forEach((e) => {
+				errors.push({
+					field: e.path!,
+					message: e.message,
+				});
+			});
+
+			return new UserResponse().setErrors(errors);
 		}
-
-		// Success register
-		// Save session
-		req.session.userId = user.id;
-
-		return new UserResponse().setData(user);
 	}
 
-	@Mutation(() => Boolean)
-	async logout(@Ctx() { req }: GraphqlContext): Promise<boolean> {
-		const err = await new Promise((resolve) =>
-			req.session.destroy((err) => resolve(err))
-		);
+	@Authorized<keyof typeof UserRoles>(["Admin"])
+	@Mutation(() => UserResponse)
+	async createUser(
+		@Arg("options") options: RegisterInput
+	): Promise<UserResponse> {
+		const { firstName, lastName, password, role, username } = options;
+		try {
+			await createUserValidationSchema.validate(options, {
+				abortEarly: false,
+			});
+			const user = await User.create({
+				firstName,
+				lastName,
+				username,
+				role,
+				password: await hash(password),
+			}).save();
 
-		return !err;
+			return new UserResponse().setData(user);
+		} catch (error) {
+			const errors: any[] = [];
+
+			if (error.code === "23505") {
+				return new UserResponse().setErrors([
+					{
+						field: "username",
+						message: "User already exists",
+					},
+				]);
+			}
+
+			(error as ValidationError).inner.forEach((e) => {
+				errors.push({
+					field: e.path!,
+					message: e.message,
+				});
+			});
+
+			return new UserResponse().setErrors(errors);
+		}
 	}
 }

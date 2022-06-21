@@ -4,16 +4,16 @@ import GraphQLUpload from "graphql-upload/GraphQLUpload.js"; // :(
 
 import { Arg, Authorized, Mutation, Resolver } from "type-graphql";
 import { User, UserRoles } from "../entity/User";
-import { Upload } from "../types";
+import { HandleErrors, Upload } from "../types";
 import { castToUsersArray } from "../utils/verifyCsvFields";
 
 @Resolver(User)
 export class FileResolver {
 	@Authorized<keyof typeof UserRoles>(["Admin", "Moderator"])
-	@Mutation(() => Boolean)
+	@Mutation(() => HandleErrors)
 	async registerUsers(
 		@Arg("file", () => GraphQLUpload) { createReadStream }: Upload
-	): Promise<boolean> {
+	): Promise<HandleErrors> {
 		return await new Promise((resolve, reject) => {
 			createReadStream()
 				.on("data", async (row: Buffer) => {
@@ -21,23 +21,37 @@ export class FileResolver {
 						const usersToCreate: User[] = parse(row, {
 							columns: true,
 						});
-						const users = await castToUsersArray(usersToCreate);
+
+						const { errors, users } = await castToUsersArray(
+							usersToCreate
+						);
+
+						if (errors.length) {
+							return resolve(
+								new HandleErrors().setErrors(errors)
+							);
+						}
 						// await User.save(users, { chunk: 10 });
-						await User.createQueryBuilder()
+
+						const createdUsers = await User.createQueryBuilder()
 							.insert()
 							.values(users)
 							.orIgnore()
+							.returning("*")
 							.execute();
-						return resolve(true);
+
+						return resolve(
+							new HandleErrors().setCreatedUsers(createdUsers.raw)
+						);
 					} catch (error) {
 						// if (error.code === "23505") {
 						// 	// this event fires not every time [fix*]
 						// 	return reject(new Error("User already exists"));
 						// }
-						return reject(new Error(error.message));
+						reject(error);
 					}
 				})
-				.on("error", () => reject(false));
+				.on("error", () => reject("Something went wrong"));
 		});
 	}
 }

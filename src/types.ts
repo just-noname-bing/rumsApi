@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Stream } from "stream";
 import { Field, InputType, ObjectType } from "type-graphql";
-import { User } from "./entity/User";
+import { User, UserRoles } from "./entity/User";
 
 export type GraphqlContext = {
 	req: Request;
@@ -24,6 +24,8 @@ declare global {
 			POSTGRES_PORT: string;
 			SERVER_PORT: string;
 			WEB_SERVER_ORIGIN: string;
+			INITIAL_ADMIN_USERNAME: string;
+			INITIAL_ADMIN_PASSWORD: string;
 		}
 	}
 }
@@ -66,4 +68,47 @@ export interface Upload {
 	mimetype: string;
 	encoding: string;
 	createReadStream: () => Stream;
+}
+
+@ObjectType()
+export class HandleErrors {
+	@Field(() => [FieldErrors], { nullable: true })
+	errors?: FieldErrors[];
+	@Field(() => [User], { nullable: true })
+	createdUsers: User[];
+
+	setCreatedUsers(users: User[]) {
+		this.createdUsers = users;
+		return this;
+	}
+	setErrors(errors: FieldErrors[]) {
+		this.errors = errors;
+		return this;
+	}
+}
+
+@InputType()
+export class UserFields {
+	@Field()
+	username: string;
+	@Field()
+	firstName: string;
+	@Field()
+	lastName: string;
+	@Field(() => UserRoles)
+	role: keyof typeof UserRoles;
+}
+
+@InputType()
+export class RegisterInput {
+	@Field()
+	username: string;
+	@Field()
+	password: string;
+	@Field()
+	firstName: string;
+	@Field()
+	lastName: string;
+	@Field(() => UserRoles)
+	role: keyof typeof UserRoles;
 }
