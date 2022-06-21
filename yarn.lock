@@ -283,20 +283,6 @@
   resolved "https://registry.yarnpkg.com/@types/cors/-/cors-2.8.12.tgz#6b2c510a7ad7039e98e7b8d3d6598f4359e5c080"
   integrity sha512-vt+kDhq/M2ayberEtJcIN/hxXy1Pk+59g2FV/ZQceeaTyCtCucjL2Q7FXlFjtWn4n15KCr1NE2lNNFhp0lEThw==
 
-"@types/csv-parse@^1.2.2":
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/@types/csv-parse/-/csv-parse-1.2.2.tgz#713486235759d615dc8e6a6a979170ada76701d5"
-  integrity sha512-k33tLtRKTQxf7hQfMlkWoS2TQYsnpk1ibZN+rzbuCkeBs8m23nHTeDTF1wb/e7/MSLdtgCzqu3oM1I101kd6yw==
-  dependencies:
-    csv-parse "*"
-
-"@types/csv-stringify@^3.1.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@types/csv-stringify/-/csv-stringify-3.1.0.tgz#4c172ef462740e584a5bfe66ea78b67759f7bb32"
-  integrity sha512-jNRWx49wIc9UjJXukCaQt8iZRjyzDiEC1CGAAIZsydECWl5xM9oq4pSc5+Jhl4oATrRr+eGA9Vf0y9duDbKAvg==
-  dependencies:
-    csv-stringify "*"
-
 "@types/dotenv-safe@^8.1.2":
   version "8.1.2"
   resolved "https://registry.npmjs.org/@types/dotenv-safe/-/dotenv-safe-8.1.2.tgz"
@@ -865,12 +851,12 @@ cssfilter@0.0.10:
   resolved "https://registry.yarnpkg.com/cssfilter/-/cssfilter-0.0.10.tgz#c6d2672632a2e5c83e013e6864a42ce8defd20ae"
   integrity sha512-FAaLDaplstoRsDR8XGYH51znUN0UY7nMc6Z9/fvE8EXGwvJE9hu7W2vHwx1+bd6gCYnln9nLbzxFTrcO9YQDZw==
 
-csv-parse@*, csv-parse@^5.2.0:
+csv-parse@^5.2.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/csv-parse/-/csv-parse-5.2.0.tgz#492b5ca2e5e87e3672ca834e83ab3a0e2486d5cb"
   integrity sha512-ZuLjTp3Qx2gycoB7FKS9q11KgDL3f0wQszTlNOajS3fHa0jypN/zgjmkam+rczX5dXw5z7+KrDW2hWkM4542Ug==
 
-csv-stringify@*, csv-stringify@^6.1.2:
+csv-stringify@^6.1.2:
   version "6.1.2"
   resolved "https://registry.yarnpkg.com/csv-stringify/-/csv-stringify-6.1.2.tgz#457f374fef3e15740a7f1274d6bf1b1462c12dcf"
   integrity sha512-7a10seDecJedfVcqvJwcO8b91XJr6O5I+hT0g9HaX/sz2+gmZHfzc+kH2RpCY8ke+5SVWbE2crIEAMNH6jeATg==

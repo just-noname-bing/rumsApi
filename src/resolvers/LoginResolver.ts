@@ -56,7 +56,7 @@ export class LoginResolver {
 					message: "Incorrect credentials",
 				},
 				{
-					field: "username",
+					field: "password",
 					message: "Incorrect credentials",
 				},
 			]);

@@ -9,7 +9,7 @@ import { castToUsersArray } from "../utils/verifyCsvFields";
 
 @Resolver(User)
 export class FileResolver {
-	@Authorized<keyof typeof UserRoles>(["Admin", "Moderator"])
+	@Authorized<keyof typeof UserRoles>(["Admin"])
 	@Mutation(() => HandleErrors)
 	async registerUsers(
 		@Arg("file", () => GraphQLUpload) { createReadStream }: Upload

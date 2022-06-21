@@ -28,14 +28,22 @@ import { GraphqlContext } from "./types";
 			const db = await AppDataSource.initialize();
 			console.log("connected", db.isInitialized);
 
-			let admin = await User.findOne({ where: { role: "Admin" } });
+			let admin = await User.findOne({
+				where: {
+					username: process.env.INITIAL_ADMIN_USERNAME,
+					role: "Admin",
+				},
+			});
+
+			console.log(admin);
+
 			if (!admin) {
-				// no admin
 				admin = await User.create({
 					username: process.env.INITIAL_ADMIN_USERNAME,
 					firstName: "admin",
 					lastName: "admin",
-					password: await hash(process.env.POSTGRES_PASSWORD),
+					password: await hash(process.env.INITIAL_ADMIN_PASSWORD),
+					role: "Admin",
 				}).save();
 			}
 
@@ -45,6 +53,11 @@ import { GraphqlContext } from "./types";
 
 			break;
 		} catch (error) {
+			if (error.code === "23505") {
+				// db working
+				return console.log("Admin username taken");
+			}
+
 			console.log(error);
 			console.log(`[retries=${reconnect}]reconnecting to database...`);
 			await new Promise((resolve) => setTimeout(resolve, 1000 * 3));
